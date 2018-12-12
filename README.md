@@ -1,10 +1,15 @@
-![General Assembly Logo](http://i.imgur.com/ke8USTq.png)
+[![General Assembly Logo](https://camo.githubusercontent.com/1a91b05b8f4d44b5bbfb83abac2b0996d8e26c92/687474703a2f2f692e696d6775722e636f6d2f6b6538555354712e706e67)](https://generalassemb.ly/education/web-development-immersive)
 
-# File upload with node, express, and AWS
+# Express Multer Upload API
 
-## Instructions
+In this lesson, we will learn how to perform a file upload to a remote server
+using node, express, and Amazon Web Services (AWS).
 
-Fork, clone, and npm install.  Then `npm install -g nodemon`.
+## Prerequisites
+
+- [An AWS (Amazon Web Services) account](https://git.generalassemb.ly/ga-wdi-boston/aws-s3-setup-guide)
+- [ga-wdi-boston/express-api](https://git.generalassemb.ly/ga-wdi-boston/express-api)
+- [ga-wdi-boston/node-api-promises](https://git.generalassemb.ly/ga-wdi-boston/node-api-promises)
 
 ## Objectives
 
@@ -14,112 +19,194 @@ By the end of this lesson, students should be able to:
 - Write files from a `Buffer` to the file-system.
 - Create path names with a low chance of duplication
 - Store information about uploaded files in MongoDB via Mongoose
-- Upload files from a browser to express and store them in the file-system or AWS S3.
+- Upload files from a browser to express and store them in the file-system or
+  AWS S3.
 
-## Prerequisites
+## Preparation
 
-- An `AWS` _(Amazon Web Services)_ account
-- [Familiarity with express middleware](https://github.com/ga-wdi-boston/express-standard-middleware)
+1. Fork and clone this repository.
+ [FAQ](https://github.com/ga-wdi-boston/meta/wiki/ForkAndClone)
+1. Create a new branch, `training`, for your work.
+1. Checkout to the `training` branch.
+1. Install dependencies with `npm install`.
 
-## Discussion
+## Discussion: Uploading Files
 
-What are the parts of file upload?  What are the issues to guard against?
+**Questions**
 
-## AWS access control - follow along
+- What are the different steps of a file upload?
+- What are the issues to guard against?
+- How do we deal with a partial upload or a slow connection?
 
-Why is this important?
+## AWS S3 Buckets
 
-We'll go through the steps necessary to allow authenticated uploads without allowing other access to AWS.
+### Why Store Files In An AWS Bucket
 
-From the `AWS` console open tabs for `IAM` _(Identity and Access Management)_ and `S3` _(Simple Storage Service)_.
+AWS allows us to store files in a single source of truth accessible via the
+internet, ie "the cloud". This means that files uploaded to S3 can be accessible
+to all of your app users. Changes to your files can easily be seen by everyone.
 
-In the IAM tab, select `Users` and then the IAM user you want to use for uploads.  Alternatively, you can create and select a new user.  We'll need the `User ARN` _(Amazon Resource Name)_ to grant access to the S3 bucket we'll use for uploads.  We'll also need an `Access Key` _(Access Key Id and Secret Access Key)_ for this IAM User to upload files.
+The **bucket** abstraction specifically lets us store files in a folder in the
+AWS cloud, as well as allow a specific and restrictive way of implementing
+access control to that folder (a policy).
 
-In the S3 tab, create a new bucket for uploads.  Open `Permissions` and click on `Add bucket policy`.  Click on `AWS Policy Generator` at the bottom of the `Bucket Policy Editor` modal.  This will open the AWS Policy Generator page.
+In the [ga-wdi-boston/aws-s3-setup-guide](https://git.generalassemb.ly/ga-wdi-boston/aws-s3-setup-guide)
+prerequisite, you went through some steps to allow us access to read and write
+to a bucket in the AWS S3 (storage <sup>cubed</sup>) service. The CSV
+credentials that you downloaded at the end of that prereq is what will allow out
+command line and server applications permission to upload files to your AWS S3
+bucket.
 
-On the AWS Policy Generator page, select `S3 Bucket Policy` as the type of policy to generate.  Copy the User ARN from the IAM user page and paste it into the `Principal` text box.  Select `Amazon S3` as the `AWS Service`.  Select `PutObject` and `PutObjectAcl` in the actions multi-select.  Enter `arn:aws:s3:::<bucket_name>/<key_name>` into the `Amazon Resource Name (ARN)` text box. `key_name` is a directory equivalent, we'll use `*`. After all that, click the `Add Statement` button then the `Generate Policy` button.  The `Policy JSON Document` modal that opens contains the bucket policy we'll use (an example follows). Select and copy the JSON then go back to the S3 tab and paste the JSON into the Bucket Policy Editor and click save.
+### Code-Along: Uploading Files To AWS From `node`
 
-```json
-{
-  "Version": "2012-10-17",
-  "Id": "Policy1439826519004",
-  "Statement": [
-    {
-      "Sid": "Stmt1439826516658",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::<AWS Account Id>:user/<IAM User Name>"
-      },
-      "Action": [
-        "s3:PutObjectAcl",
-        "s3:PutObject"
-      ],
-      "Resource": "arn:aws:s3:::<bucket_name>/<key_name>"
-    }
-  ]
-}
+We'll build a command line script to upload a file to your AWS bucket. We'll use
+[AWS.S3](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html),
+specifically the
+[upload](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property)
+method, to send files to AWS S3.
+
+#### Installing The `aws-sdk` Package
+
+First, let's install the `aws-sdk` and another tool called `mime-types` for
+this repo by running:
+
+```bash
+npm install --save aws-sdk mime-types
 ```
 
-With this configuration, we only allow upload access to this the one bucket.
+#### Writing Our Code
 
-This is one specific and restrictive way of implementing access control.  AWS provides many different mechanisms to grant and restrict access.
+- First, let's set up a `.env` file in the root of our repo with:
 
-### Uploading files to AWS from node - code along
+```text
+BUCKET_NAME=<your AWS bucket name>
+ACCESS_KEY_ID=<access key id value from your credentials csv>
+SECRET_ACCESS_KEY=<secret access key value from your credentials csv>
+```
 
-We'll build a command line script to upload a file to AWS.
+Let's create a file in `lib` called `aws-s3-upload.js` and start writing our
+code in there.
 
-We'll use [AWS.S3](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html), specifically the [upload](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property) method, to send files to AWS S3.
+The `lib/aws-s3-upload.js` script should be able to:
 
-Why build a command line uploader?
+- take two command line arguments: the path to your file, and optionally, the
+  name the file will have once uploaded to the s3 bucket
+- upload a file to s3 using the `upload` method from the `AWS.S3` Object
+- use a `Promise` to handle the asynchronous action of uploading `AWS.S3.upload`
 
-We'll use the following node modules.
+#### Uploading A File To AWS With Our Script
 
-- `aws-sdk`
-- `crypto`
-- `dotenv`
-- `file-type`
-- `fs`
-- `mongoose`
+Once we are done coding, we can run the script using this format:
 
-We'll run the script using `npm run upload-aws <file> [comment]`.
+```bash
+BUCKET=<your bucket name> node lib/aws-s3-upload.js <file path> [file name]
+```
 
-### refactoring - practice
+For example, we could upload the image at `/data/images/padawan.png` by running:
 
-We'll separate out the parts that aren't about a command line script so we can reuse them.
+```bash
+BUCKET=chris-paynes-wdi-bucket node lib/aws-s3-upload.js /data/images/padawan.png uploadedImage
+```
 
-## Uploading files to the file-system - code along
+Once the script runs successfully, you can go to your Amazon S3 Bucket and see
+that the file has been uploaded!
 
-We'll build a command line script to "upload" a file to the file-system.
+### Uploading Files To AWS Through A Server
 
-Why build a command line uploader?  What do we have to take care of that AWS handles for us?
+#### Even A Server Can Be A Client Sometimes
 
-We'll use the same node modules but omit `aws-sdk`.
+One of the great utilities of being able to upload files to AWS from the command
+line is that we can use this functionality within our servers to upload a user's
+files to the cloud.
 
-### refactoring - practice
+**Questions**
 
-We'll separate out the parts that aren't about a command line script so we can reuse them.
+- What might this look like?
+- How would we keep track of which files were uploaded by each user to the
+  cloud, as well as their urls in the cloud?
 
-## Uploading files to an echo server from an html form - code along
+Let's take a minute to draw it on the board.
 
-Fork and clone `https://github.com/ga-wdi-boston/jquery-ajax-form-data-upload`.
+![server client database s3 diagram](https://git.generalassemb.ly/storage/user/3667/files/b31866b8-3a29-11e7-876b-f07dbfc7ea56)
 
-We'll use a form with attribute `enctype="multipart/form-data"` to allow uploading of one or more files.
+#### Building Our Server
 
-We'll use the `FormData` object with jQuery's `$.ajax` function to POST data to an echo server, `http://httpbin.org`.  Later we'll use this front end to POST data to express/multer.
+This repo is already set up to run a standard `express-api`
+server as you've seen in previous lessons.
 
-## Uploading files to the file system via multer and express - code along
+In order to set up this server to upload files to s3, we will need to:
 
-We'll use the following express modules in addition to the modules from the file-system code along:
+- Refactor our code from the last step so it can be imported as a
+  module for our server
+- Keep track of uploaded file information in a `mongo` database by:
+  - Writing a  **model** for Upload data
+  - Writing a **route** for Upload data
 
-- `multer`
-- `body-parser`
-- `cors`
-- `debug`
-- `express`
-- `morgan`
-- `multer`
+### Code-Along: Refactoring `lib/aws-s3-upload.js`
 
+We will:
 
-## Uploading files to AWS via multer and express - practice
+- Remove the parts of `/lib/aws-s3-upload.js` where the `Promise` is being run
+  with `.then` and `.catch` methods
+- Export this function using  `module.exports` so our server can use it
 
-We'll need to add `aws-sdk` to the modules we're using.
+### Code-Along: Adding An `Upload` Model
+
+We will:
+
+- Make a file in `/app/models` called `upload.js`
+- Describe our `Upload` schema in `/app/models/upload.js`:
+  - Required keys: `title`, `url`, `owner` (reference key to `User`)
+
+### Code-Along: Adding An `Upload` Route
+
+We will:
+
+- Make a copy of the contents of `/app/routes/example_routes.js` in a new file
+  called `upload_routes.js` in `app/routes`
+- Modify the appropriate imports and variable names to work with `Upload`
+  request
+- Add in `multer` functionality to allow data sent in requests to be stored on
+  the server, then uploaded to s3 (run `npm install --save multer`)
+- Add our route to `server.js`
+- Add the logic to upload a file to S3 in the `POST` router
+
+### Lab: Uploading Files To s3 Using `curl` Requests
+
+Try and upload the image at `/data/images/padawan.png` to the server
+using the `curl` scripts in `scripts/uploads`. Remember, our `upload` routes are
+authenticated, so you'll need a token first.
+
+> NOTE: use `/scripts/uploads/create-file.sh` to upload files. In order to send
+a file using a `curl` request, you must specify the path to the image with a
+`@` in front of it. For example:
+
+  ```bash
+  IMAGE_PATH=@./data/images/padawan.png ...
+  ```
+
+### BONUS Code-Along: Uploading Files Via A Browser Client
+
+So far we have uploaded files directly to s3 using `node` scripts, as well as
+via `curl` scripts sent to our custom server. In real world usage, we would most
+likely be sending our data to the server via a browser client.
+
+Follow the steps to set up this repo [ga-wdi-boston/upload-client](https://git.generalassemb.ly/ga-wdi-boston/upload-client/). 
+Once it's set up, we can run it using `grunt serve` and try and use it to send
+files to a server using HTML forms.
+
+We will:
+
+- Use a form with `action`, `method` and `enctype` HTML attributes to send
+  files to an echo server [httpbin.org](http://httpbin.org), which if
+  successful, will send the data back to us in response
+- Modify the `action` attribute of our forms to send data to our custom server
+  instead, which will then get uploaded to s3
+
+## Additional Resources
+
+## [License](LICENSE)
+
+1. All content is licensed under a CC­BY­NC­SA 4.0 license.
+1. All software code is licensed under GNU GPLv3. For commercial use or
+    alternative licensing, please contact legal@ga.co.
