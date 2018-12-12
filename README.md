@@ -1,10 +1,13 @@
-![General Assembly Logo](http://i.imgur.com/ke8USTq.png)
+[![General Assembly Logo](https://camo.githubusercontent.com/1a91b05b8f4d44b5bbfb83abac2b0996d8e26c92/687474703a2f2f692e696d6775722e636f6d2f6b6538555354712e706e67)](https://generalassemb.ly/education/web-development-immersive)
 
-# File upload with node, express, and AWS
+# Express Multer Upload API
 
-## Instructions
+In this lesson, we will learn how to perform a file upload to a remote server using node, express, and Amazom Web Services (AWS).
 
-Fork, clone, and npm install.  Then `npm install -g nodemon`.
+## Prerequisites
+
+- An `AWS` _(Amazon Web Services)_ account
+- [Familiarity with express middleware](https://github.com/ga-wdi-boston/express-standard-middleware)
 
 ## Objectives
 
@@ -16,14 +19,18 @@ By the end of this lesson, students should be able to:
 - Store information about uploaded files in MongoDB via Mongoose
 - Upload files from a browser to express and store them in the file-system or AWS S3.
 
-## Prerequisites
+## Preparation
 
-- An `AWS` _(Amazon Web Services)_ account
-- [Familiarity with express middleware](https://github.com/ga-wdi-boston/express-standard-middleware)
+1. Fork and clone this repository.
+ [FAQ](https://github.com/ga-wdi-boston/meta/wiki/ForkAndClone)
+1. Create a new branch, `training`, for your work.
+1. Checkout to the `training` branch.
+1. Install dependencies with `npm install`.
+1. Install `nodemon` by running `npm install -g nodemon`.
 
 ## Discussion
 
-What are the parts of file upload?  What are the issues to guard against?
+What are the parts of a file upload?  What are the issues to guard against?
 
 ## AWS access control - follow along
 
@@ -119,7 +126,14 @@ We'll use the following express modules in addition to the modules from the file
 - `morgan`
 - `multer`
 
-
 ## Uploading files to AWS via multer and express - practice
 
 We'll need to add `aws-sdk` to the modules we're using.
+
+## Additional Resources
+
+## [License](LICENSE)
+
+1. All content is licensed under a CC­BY­NC­SA 4.0 license.
+1. All software code is licensed under GNU GPLv3. For commercial use or
+    alternative licensing, please contact legal@ga.co.
