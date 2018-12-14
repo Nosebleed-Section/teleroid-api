@@ -25,7 +25,7 @@ const requireOwnership = customErrors.requireOwnership
 // it will also set `res.user`
 const requireToken = passport.authenticate('bearer', { session: false })
 
-const multer  = require('multer')
+const multer = require('multer')
 const upload = multer({ dest: 'uploads/' })
 const s3Upload = require('../../lib/aws-s3-upload')
 
