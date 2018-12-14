@@ -3,6 +3,8 @@ const passport = require('passport')
 
 const Comment = require('../models/comment')
 
+const Picture = require('../models/picture')
+
 const handle = require('../../lib/error_handler')
 const customErrors = require('../../lib/custom_errors')
 
@@ -35,6 +37,18 @@ router.post('/comments', requireToken, (req, res) => {
   Comment.create(req.body.comment)
     .then(comment => {
       res.status(201).json({ comment: comment.toObject() })
+      return comment
+    })
+    // trying to add a comment id reference to picture document
+    .then(comment => {
+      Picture.findById(comment.picture, function (err, picture) {
+        if (err) {throw err}
+        const array = picture.comments
+        array.push(comment._id)
+        picture.update({
+          comments:array
+        })
+      })
     })
     .catch(err => handle(err, res))
 })
