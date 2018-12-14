@@ -344,6 +344,23 @@ const generate = () => {
   writeCurlScripts()
 }
 
+// deleteFolderRecursive() is used to destory folders recursively
+// courtesy of stack overflow
+// https://stackoverflow.com/questions/18052762/remove-directory-which-is-not-empty
+const deleteFolderRecursive = function (path) {
+  if (fs.existsSync(curlPath)) {
+    fs.readdirSync(curlPath).forEach(function (file, index) {
+      const curPath = curlPath + "/" + file
+      if(fs.lstatSync(curPath).isDirectory()) { // recurse
+        deleteFolderRecursive(curPath)
+      } else { // delete file
+        fs.unlinkSync(curPath)
+      }
+    })
+    fs.rmdirSync(curlPath)
+  }
+}
+
 // destroy() removes all the files/changes created by generate()
 const destroy = () => {
   // destroy the model
@@ -379,19 +396,7 @@ const destroy = () => {
     if (err) return console.log(err)
   })
   // destroy the curl scripts
-  // courtesy of stack overflow
-  // https://stackoverflow.com/questions/18052762/remove-directory-which-is-not-empty
-  if (fs.existsSync(curlPath)) {
-    fs.readdirSync(curlPath).forEach(function (file, index) {
-      const curPath = curlPath + "/" + file
-      if(fs.lstatSync(curPath).isDirectory()) { // recurse
-        deleteFolderRecursive(curPath)
-      } else { // delete file
-        fs.unlinkSync(curPath)
-      }
-    })
-    fs.rmdirSync(curlPath)
-  }
+  deleteFolderRecursive()
 }
 
 // determineMode() checks to see whether it should generate or destroy
