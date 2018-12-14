@@ -5,6 +5,9 @@ const pictureSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  comments: {
+    type: Array
+  },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

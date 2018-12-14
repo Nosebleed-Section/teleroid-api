@@ -15,6 +15,12 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  comments: {
+    type: Array
+  },
+  pictures: {
+    type: Array
+  },
   token: String
 }, {
   timestamps: true,
