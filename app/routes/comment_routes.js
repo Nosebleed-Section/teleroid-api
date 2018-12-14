@@ -42,12 +42,11 @@ router.post('/comments', requireToken, (req, res) => {
     // trying to add a comment id reference to picture document
     .then(comment => {
       Picture.findById(comment.picture, function (err, picture) {
-        if (err) {throw err}
+        if (err) { throw err }
         const array = picture.comments
         array.push(comment._id)
-        picture.update({
-          comments:array
-        })
+        picture.set({comments: array})
+        picture.save()
       })
     })
     .catch(err => handle(err, res))
