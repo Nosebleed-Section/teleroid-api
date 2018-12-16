@@ -53,7 +53,7 @@ router.post('/pictures', [requireToken, picture.single('image')], (req, res) => 
       // req.body.upload.owner = req.user.id
       return Picture.create({
         title: req.body.title,
-        url: response.Location,
+        url: response.Location, // response.Location is the url sent back by Amazon AWS
         owner: req.user.id,
         comments: []
       })
