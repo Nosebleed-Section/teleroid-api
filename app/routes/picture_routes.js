@@ -89,6 +89,10 @@ router.delete('/pictures/:id', requireToken, (req, res) => {
     .then(handle404)
     .then(picture => {
       requireOwnership(req, picture)
+      picture.comments.forEach(commentId => {
+        Comment.findById(commentId)
+          .then(comment => comment.remove())
+      })
       picture.remove()
     })
     .then(() => res.sendStatus(204))
