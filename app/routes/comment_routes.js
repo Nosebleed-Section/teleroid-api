@@ -15,7 +15,7 @@ const requireToken = passport.authenticate('bearer', { session: false })
 
 const router = express.Router()
 
-router.get('/comments', requireToken, (req, res) => {
+router.get('/comments', (req, res) => {
   Comment.find()
     .then(comments => {
       return comments.map(comment => comment.toObject())
@@ -24,7 +24,7 @@ router.get('/comments', requireToken, (req, res) => {
     .catch(err => handle(err, res))
 })
 
-router.get('/comments/:id', requireToken, (req, res) => {
+router.get('/comments/:id', (req, res) => {
   Comment.findById(req.params.id)
     .then(handle404)
     .then(comment => res.status(200).json({ comment: comment.toObject() }))

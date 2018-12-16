@@ -18,7 +18,7 @@ const s3Upload = require('../../lib/aws-s3-upload')
 
 const router = express.Router()
 
-router.get('/pictures', requireToken, (req, res) => {
+router.get('/pictures', (req, res) => {
   Picture.find()
     .then(pictures => {
       return pictures.map(picture => picture.toObject())
@@ -27,7 +27,7 @@ router.get('/pictures', requireToken, (req, res) => {
     .catch(err => handle(err, res))
 })
 
-router.get('/pictures/:id', requireToken, (req, res) => {
+router.get('/pictures/:id', (req, res) => {
   const fullComments = []
   Picture.findById(req.params.id)
     .then(handle404)
