@@ -4,6 +4,7 @@ const passport = require('passport')
 const Comment = require('../models/comment')
 
 const Picture = require('../models/picture')
+const User = require('../models/user')
 
 const handle = require('../../lib/error_handler')
 const customErrors = require('../../lib/custom_errors')
@@ -27,7 +28,7 @@ router.get('/comments', (req, res) => {
 router.get('/comments/:id', (req, res) => {
   Comment.findById(req.params.id)
     .then(handle404)
-    .then(comment => res.status(200).json({ comment: comment.toObject() }))
+    .then(comment => res.status(201).json(comment))
     .catch(err => handle(err, res))
 })
 
@@ -35,6 +36,14 @@ router.post('/comments', requireToken, (req, res) => {
   req.body.comment.owner = req.user.id
 
   Comment.create(req.body.comment)
+    .then(comment => {
+      User.findById(comment.owner)
+        .then(user => {
+          comment.set({ username: user.username })
+          comment.save()
+        })
+      return comment
+    })
     .then(comment => {
       res.status(201).json({ comment: comment.toObject() })
       return comment

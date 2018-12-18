@@ -28,19 +28,8 @@ router.get('/pictures', (req, res) => {
 })
 
 router.get('/pictures/:id', (req, res) => {
-  const fullComments = []
   Picture.findById(req.params.id)
     .then(handle404)
-    .then(picture => {
-      picture.comments.forEach(commentId => {
-        Comment.findById(commentId)
-          .then(comment => fullComments.push(comment))
-          .then(picture => {
-            picture.comments = fullComments
-          })
-      })
-      return picture
-    })
     .then(picture => res.status(200).json({ picture: picture.toObject() }))
     .catch(err => handle(err, res))
 })
