@@ -14,7 +14,10 @@ const requireToken = passport.authenticate('bearer', { session: false })
 
 const multer = require('multer')
 const picture = multer({ dest: 'pictures/' })
+
+const s3Update = require('../../lib/aws-s3-update')
 const s3Upload = require('../../lib/aws-s3-upload')
+const s3Delete = require('../../lib/aws-s3-delete')
 
 const router = express.Router()
 
@@ -43,31 +46,31 @@ router.post('/pictures', [requireToken, picture.single('image')], (req, res) => 
       return Picture.create({
         title: req.body.title,
         url: response.Location, // response.Location is the url sent back by Amazon AWS
+        filename: response.Key, // response.Key is the title of the file on Amazon AWS
         owner: req.user.id,
         comments: []
       })
     })
-    // respond wtih json
+    // respond with json
     .then((picture) => {
       res.status(201).json({ picture: picture.toObject() })
     })
 })
 
-router.patch('/pictures/:id', requireToken, (req, res) => {
-  delete req.body.picture.owner
-
+router.patch('/pictures/:id', [requireToken, picture.single('image')], (req, res) => {
   Picture.findById(req.params.id)
     .then(handle404)
     .then(picture => {
       requireOwnership(req, picture)
-
-      Object.keys(req.body.picture).forEach(key => {
-        if (req.body.picture[key] === '') {
-          delete req.body.picture[key]
-        }
-      })
-
-      return picture.update(req.body.picture)
+      if (req.params.title) {
+        picture.set({title: req.params.title})
+      }
+      return picture.save()
+    })
+    .then(picture => {
+      if (req.file) {
+        s3Update(req.file.path, picture.filename)
+      }
     })
     .then(() => res.sendStatus(204))
     .catch(err => handle(err, res))
@@ -82,6 +85,7 @@ router.delete('/pictures/:id', requireToken, (req, res) => {
         Comment.findById(commentId)
           .then(comment => comment.remove())
       })
+      s3Delete(picture.filename)
       picture.remove()
     })
     .then(() => res.sendStatus(204))
