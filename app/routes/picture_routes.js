@@ -62,9 +62,10 @@ router.patch('/pictures/:id', [requireToken, picture.single('image')], (req, res
     .then(handle404)
     .then(picture => {
       requireOwnership(req, picture)
-      if (req.params.title) {
-        picture.set({title: req.params.title})
+      if (req.body.title) {
+        picture.set({title: req.body.title})
       }
+      console.log(picture)
       return picture.save()
     })
     .then(picture => {
