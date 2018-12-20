@@ -40,7 +40,7 @@ router.get('/pictures/:id', (req, res) => {
 router.post('/pictures', [requireToken, picture.single('image')], (req, res) => {
   s3Upload(req.file.path, req.file.originalname, req.body.title)
     .then((response) => {
-      console.log(response.Location)
+      // console.log(response.Location)
       // set owner of new upload to be current user
       // req.body.upload.owner = req.user.id
       return Picture.create({

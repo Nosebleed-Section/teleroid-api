@@ -88,10 +88,10 @@ router.delete('/comments/:id', requireToken, (req, res) => {
       requireOwnership(req, comment)
       Picture.findById(comment.picture, function (err, picture) {
         if (err) { throw err }
-        console.log('before splicing, picture.comments is', picture.comments)
+        // console.log('before splicing, picture.comments is', picture.comments)
         const commentIndex = picture.comments.indexOf(comment._id)
         picture.comments.splice(commentIndex, 1)
-        console.log('after splicing, picture.comments is', picture.comments)
+        // console.log('after splicing, picture.comments is', picture.comments)
         picture.save()
       })
       comment.remove()
