@@ -65,15 +65,23 @@ router.patch('/pictures/:id', [requireToken, picture.single('image')], (req, res
       if (req.body.title) {
         picture.set({title: req.body.title})
       }
-      console.log(picture)
       return picture.save()
     })
     .then(picture => {
       if (req.file) {
+        s3Delete(picture.filename)
         s3Update(req.file.path, picture.filename)
+          .then(response => {
+            picture.set({ url: response.Location })
+            picture.set({ filename: response.Key })
+            picture.save()
+          })
       }
+      return picture
     })
-    .then(() => res.sendStatus(204))
+    .then((picture) => {
+      res.status(201).json({ picture: picture.toObject() })
+    })
     .catch(err => handle(err, res))
 })
 
