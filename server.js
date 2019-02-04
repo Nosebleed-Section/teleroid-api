@@ -7,7 +7,7 @@ const cors = require('cors')
 // require route files
 const commentRoutes = require('./app/routes/comment_routes')
 const pictureRoutes = require('./app/routes/picture_routes')
-const uploadRoutes = require('./app/routes/upload_routes')
+// const uploadRoutes = require('./app/routes/upload_routes')
 const exampleRoutes = require('./app/routes/example_routes')
 const userRoutes = require('./app/routes/user_routes')
 
@@ -74,7 +74,7 @@ app.use(bodyParser.urlencoded({ extended: true }))
 // register route files
 app.use(commentRoutes)
 app.use(pictureRoutes)
-app.use(uploadRoutes)
+// app.use(uploadRoutes)
 app.use(exampleRoutes)
 app.use(userRoutes)
 
