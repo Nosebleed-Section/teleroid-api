@@ -12,15 +12,18 @@ const requireOwnership = customErrors.requireOwnership
 
 const requireToken = passport.authenticate('bearer', { session: false })
 
+// multer middleware for file uploads
 const multer = require('multer')
 const picture = multer({ dest: 'pictures/' })
 
+// AWS functions
 const s3Update = require('../../lib/aws-s3-update')
 const s3Upload = require('../../lib/aws-s3-upload')
 const s3Delete = require('../../lib/aws-s3-delete')
 
 const router = express.Router()
 
+// index pictures
 router.get('/pictures', (req, res) => {
   Picture.find()
     .then(pictures => {
@@ -30,6 +33,7 @@ router.get('/pictures', (req, res) => {
     .catch(err => handle(err, res))
 })
 
+// show one picture
 router.get('/pictures/:id', (req, res) => {
   Picture.findById(req.params.id)
     .then(handle404)
@@ -37,18 +41,17 @@ router.get('/pictures/:id', (req, res) => {
     .catch(err => handle(err, res))
 })
 
+// create a new picture--save uploaded file to AWS
 router.post('/pictures', [requireToken, picture.single('image')], (req, res) => {
   s3Upload(req.file.path, req.file.originalname, req.body.title)
     .then((response) => {
-      // console.log(response.Location)
       // set owner of new upload to be current user
-      // req.body.upload.owner = req.user.id
       return Picture.create({
         title: req.body.title,
         url: response.Location, // response.Location is the url sent back by Amazon AWS
         filename: response.Key, // response.Key is the title of the file on Amazon AWS
-        owner: req.user.id,
-        comments: []
+        owner: req.user.id, // from requireToken
+        comments: [] // sets pictures up with an empty array to hold the ids of comments created on them
       })
     })
     // respond with json
@@ -57,6 +60,7 @@ router.post('/pictures', [requireToken, picture.single('image')], (req, res) => 
     })
 })
 
+// update an existing picture
 router.patch('/pictures/:id', [requireToken, picture.single('image')], (req, res) => {
   Picture.findById(req.params.id)
     .then(handle404)
@@ -85,6 +89,7 @@ router.patch('/pictures/:id', [requireToken, picture.single('image')], (req, res
     .catch(err => handle(err, res))
 })
 
+// delete a picture
 router.delete('/pictures/:id', requireToken, (req, res) => {
   Picture.findById(req.params.id)
     .then(handle404)
